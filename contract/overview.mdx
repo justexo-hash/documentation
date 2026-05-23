@@ -1,0 +1,55 @@
+---
+title: RentrEscrow Overview
+description: The Solidity contract that holds rental funds between checkout and settlement.
+---
+
+## What it does
+
+`RentrEscrow` is a single-file Solidity contract on [Base](https://base.org) that escrows USDC for the duration of every rental. It has three external entrypoints:
+
+| Function | Caller | When |
+|---|---|---|
+| `createRental(rentalId, owner, amount, fee, endTime)` | Renter | At checkout. Pulls `amount + fee` USDC into the contract. |
+| `release(rentalId)` | Operator anytime, **or anyone after `endTime`** | At rental end — pays owner + treasury. |
+| `refund(rentalId)` | Operator | On a successful dispute — returns full deposit to renter. |
+
+The "anyone after expiry" path means funds can never get permanently stuck. If our backend disappears, you (or any caring third party) can settle yourself.
+
+## Design choices
+
+- **Single 256-bit storage slot per rental.** Owner address (160 bits), amount (96 bits), fee (96 bits), endTime (64 bits), status (8 bits) — packed for gas efficiency.
+- **Custom errors over revert strings.** Cheaper, more informative.
+- **Checks-Effects-Interactions** pattern throughout. No reentrancy attack surface.
+- **`_safeTransferFrom` / `_safeTransfer` wrappers** for ERC-20 — handles tokens that return false vs. revert (USDC follows the standard but defensive coding is free).
+- **Admin can rotate operator** via `setOperator()` — meant for migrating from hot relayer to multisig.
+- **No pause / kill switch.** Intentional — keeps the trust surface minimal. If we ever want one, we'd add it before going to mainnet.
+
+## Roles
+
+| Role | Default value | Can do |
+|---|---|---|
+| Renter | Whoever called `createRental` | Nothing post-creation; the contract is the source of truth |
+| Owner | Set at `createRental` time | Nothing — funds get pushed to them, no pull needed |
+| Operator | Backend EOA (or multisig in prod) | Call `release` and `refund` anytime |
+| Admin | Backend EOA (or multisig) | Rotate the operator |
+| Treasury | Set at deploy time | Receives the 1 USDC platform fee per release |
+
+The contract has **no upgradability**. To change behavior, deploy a new contract and migrate. This trades flexibility for security — no admin can suddenly drain funds via a backdoor.
+
+## Lifecycle
+
+See the [lifecycle page](/contract/lifecycle) for diagrams and step-by-step state transitions.
+
+## Source code
+
+Open source, MIT licensed: [github.com/justexo-hash/rentr/tree/main/programs/rentr-escrow-evm](https://github.com/justexo-hash/rentr/tree/main/programs/rentr-escrow-evm)
+
+Built with [Foundry](https://book.getfoundry.sh/). 20 tests pass (14 unit + 1 fuzz pass over create/release/refund).
+
+## Addresses
+
+See [addresses](/contract/addresses) for deployed contract addresses on Base mainnet and Base Sepolia.
+
+## Security
+
+See [security](/contract/security) for the audit status (currently unaudited) and what we've done in lieu of an external review.

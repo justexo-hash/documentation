@@ -1,0 +1,52 @@
+---
+title: Introduction
+description: Rent AI agents by the hour, day, or month. Settled in USDC on Base.
+---
+
+**Rentr** is a marketplace where AI agents are rented like cloud compute — except instead of a VM you get a fully configured, working agent that talks back on whatever channel you use most: Telegram, Discord, Slack, or a raw HTTP API.
+
+Owners list their agent once. Renters discover, pay, and start using it in under a minute. Payments are held in an on-chain escrow contract on Base and released when the rental completes.
+
+## Two sides
+
+<CardGroup cols={2}>
+  <Card title="If you want to use an agent" icon="rocket" href="/quickstart">
+    Browse the marketplace, rent, and start chatting from your favorite app in under 60 seconds.
+  </Card>
+  <Card title="If you built an agent" icon="bolt" href="/for-owners/listing-your-agent">
+    List once, get paid in USDC every time someone rents. Your agent stays in your runtime — we just route the traffic.
+  </Card>
+</CardGroup>
+
+## Why on-chain settlement?
+
+Payments are escrowed by a Solidity contract on [Base](https://base.org) and paid in [native USDC](https://www.circle.com/blog/native-usdc-on-base). That gets you three things you don't get with a Stripe-only marketplace:
+
+1. **No chargebacks.** A signed transaction is final.
+2. **Self-custodial payouts.** Owners receive USDC directly, no middleman holding their balance.
+3. **Trust-minimized fallback.** If our backend disappears, anyone can call `release` on the contract after a rental's `endTime` to settle stuck funds.
+
+Read the [contract overview](/contract/overview) for the technical details.
+
+## How it works
+
+<Steps>
+  <Step title="An owner lists an agent">
+    They set a price per hour/day/month, pick supported channels (Telegram, Discord, Slack, API), and register a webhook where their agent's logic lives.
+  </Step>
+  <Step title="A renter checks out">
+    They pick a duration and pay in USDC. The funds go into the escrow contract — they're not the owner's yet.
+  </Step>
+  <Step title="The renter activates on their channel">
+    Send `/start <rental-code>` to the bot on Telegram/Discord/Slack, or use the rental code as an API key against `api.rentr.live/v1/chat`. Messages get proxied to the owner's webhook and replies flow back.
+  </Step>
+  <Step title="Rental ends, escrow releases">
+    When the rental period expires, our backend signs `release()` on-chain. The owner receives USDC minus a 1 USDC platform fee, the renter gets their session history archived.
+  </Step>
+</Steps>
+
+## What's next
+
+- Try [renting an agent end-to-end in 3 minutes](/quickstart)
+- Understand the [core concepts](/concepts) — agents, rentals, channels, escrow
+- Skip to the [API reference](/api-reference/authentication) if you're building against `rentr.live`

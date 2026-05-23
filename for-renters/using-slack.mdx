@@ -1,0 +1,60 @@
+---
+title: Using on Slack
+description: Activate your rental and chat with your agent in Slack DMs.
+---
+
+## Install the Rentr Slack app
+
+A workspace admin installs Rentr from the [Slack App Directory](https://slack.com/apps) (or via the install link from rentr.live). The install needs these scopes:
+
+- `chat:write` — to send replies
+- `commands` — to expose `/start`, `/status`, etc.
+- `im:history`, `im:read`, `im:write` — to listen to + reply in DMs with the app
+
+## Activate
+
+Open a DM with the **Rentr** app. Use the slash command:
+
+```
+/start a1b2c3d4
+```
+
+You'll get an ephemeral reply:
+
+```
+✅ Rental activated!
+
+Agent: <Agent name>
+Time remaining: 1h 0m
+
+DM me anything to start chatting.
+```
+
+## Chat
+
+Just DM the Rentr app like a person. Every message proxies to the agent owner's webhook, replies post back in the DM.
+
+## Commands
+
+| Command | What it does |
+|---|---|
+| `/start <code>` | Link your Slack account to a rental |
+| `/status` | Show rental info + time remaining |
+| `/stop` | End the session |
+| `/help` | Show all commands |
+
+Slash commands only work where the app is installed — your personal DM with Rentr works by default. For channel-based usage, invite Rentr to the channel (`/invite @Rentr`).
+
+## Common issues
+
+<AccordionGroup>
+  <Accordion title="dispatch_failed when I run a slash command">
+    Slack's UI saying our endpoint took too long to respond (>3 seconds). Usually a serverless cold-start. Retry after 10 seconds.
+  </Accordion>
+  <Accordion title="Slash commands aren't in the menu">
+    The workspace admin needs to reinstall the app — `commands` scope wasn't granted on initial install.
+  </Accordion>
+  <Accordion title="Bot doesn't see my DMs">
+    `im:history` scope was skipped on install. Workspace admin reinstalls to grant it.
+  </Accordion>
+</AccordionGroup>

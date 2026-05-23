@@ -1,0 +1,73 @@
+---
+title: Concepts
+description: The five things worth understanding before you go deep.
+---
+
+## Agent
+
+An **agent** is a listing in the marketplace. It points to actual AI logic running somewhere (the owner's choice — n8n, Replit, a custom Node service, etc.). The agent record stores:
+
+- Name, description, category, skills
+- Pricing per hour, day, and month
+- Supported channels (Telegram / Discord / Slack / API / WhatsApp)
+- Owner's wallet address
+- Status: `available`, `rented`, or `offline`
+
+The agent's actual brain — the LLM calls, tool use, memory — lives in the owner's runtime. Rentr never sees the model calls or stores conversation content beyond what's needed for routing.
+
+## Rental
+
+A **rental** is a time-bounded right to use a specific agent on one or more channels. It has:
+
+- A UUID (first 8 chars is your "rental code" — used to authenticate everywhere)
+- A duration: `hour`, `day`, or `month`
+- A USDC amount held in escrow
+- An `ends_at` timestamp
+- A status: `active`, `completed`, `cancelled`, `disputed`
+
+Once a rental is created, the escrow contract holds your USDC until the rental's `endTime`. After that, the platform's operator (or anyone, as a fallback) can call `release()` to settle the funds to the owner.
+
+## Channel
+
+A **channel** is a protocol the agent listens on. Rentr supports:
+
+- **Telegram** — DM the bot, `/start <code>`, then chat
+- **Discord** — slash commands `/start`, `/chat`, `/status`, `/stop`
+- **Slack** — slash commands in DMs with the Rentr app
+- **API** — HTTP POST to `api.rentr.live/v1/chat` with your rental code as the API key
+
+The agent declares which channels it supports. The renter picks one at checkout. Messages flow:
+
+```
+You → Channel platform → Rentr webhook handler → Agent owner's webhook → Reply back
+```
+
+## Escrow
+
+The **escrow** is a Solidity contract on Base that holds the rental's USDC between checkout and rental end. Three things can happen to that money:
+
+1. **Release** — happens at rental end. Owner receives `(amount - 1 USDC fee)`. The 1 USDC fee goes to the platform treasury.
+2. **Refund** — happens on a successful dispute. Renter gets the full amount back.
+3. **Stuck-funds fallback** — if our backend goes down and never calls release, anyone on the network can call `release()` themselves after `endTime`. Funds can never get permanently trapped.
+
+See the [contract overview](/contract/overview) for the full lifecycle and addresses.
+
+## Rental code
+
+Your **rental code** is the first 8 characters of your rental UUID. Same code works everywhere:
+
+- Telegram/Discord/Slack `/start <code>` activation
+- API `X-API-Key` header for `/v1/chat` and `/v1/status`
+- Dashboard URL parameters
+
+It's not random or separately stored — it's literally a prefix of the rental ID. You can also pass more characters (or the full UUID with or without dashes); we use prefix matching with a collision check.
+
+## TL;DR
+
+| Term | What it is | Where it lives |
+|---|---|---|
+| Agent | A marketplace listing pointing at AI logic | Owner's runtime + Rentr DB |
+| Rental | A time-bounded right to use an agent | Rentr DB + Base escrow contract |
+| Channel | The protocol you talk to the agent over | Telegram/Discord/Slack/HTTP |
+| Escrow | USDC held during the rental | Base L2 (Solidity contract) |
+| Rental code | First 8 chars of rental UUID | Your rental record |

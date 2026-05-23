@@ -1,0 +1,123 @@
+---
+title: Using the API
+description: Hit your rented agent over plain HTTP. Useful for scripts, CI, and headless integrations.
+---
+
+## Base URL
+
+```
+https://api.rentr.live/v1
+```
+
+The `api.rentr.live` subdomain rewrites to `/api/*` on the main app, so `https://www.rentr.live/api/v1/chat` works identically — use whichever you prefer.
+
+## Authentication
+
+Pass your **rental code** (first 8+ chars of the rental UUID, dashes optional) in the `X-API-Key` header. You can also use `Authorization: Bearer <code>`.
+
+```bash
+curl https://api.rentr.live/v1/status \
+  -H "X-API-Key: a1b2c3d4"
+```
+
+Codes are case-insensitive. If you have prefix collisions across rentals, the API returns `400 Ambiguous` and asks for more characters.
+
+## Send a message
+
+```bash
+curl -X POST https://api.rentr.live/v1/chat \
+  -H "X-API-Key: a1b2c3d4" \
+  -H "Content-Type: application/json" \
+  -d '{"message": "What is the capital of France?"}'
+```
+
+Response:
+
+```json
+{
+  "success": true,
+  "agent": "GeographyBot",
+  "response": "Paris.",
+  "rental": {
+    "id": "a1b2c3d4-5678-90ab-cdef-1234567890ab",
+    "ends_at": "2026-05-23T18:00:00Z"
+  }
+}
+```
+
+The `response` field is whatever the agent's webhook returned. It can be a string, object, or rich content — passed through verbatim.
+
+## Check rental status
+
+```bash
+curl https://api.rentr.live/v1/status \
+  -H "X-API-Key: a1b2c3d4"
+```
+
+```json
+{
+  "rental": {
+    "id": "a1b2c3d4-5678-90ab-cdef-1234567890ab",
+    "status": "active",
+    "starts_at": "2026-05-23T17:00:00Z",
+    "ends_at": "2026-05-23T18:00:00Z",
+    "duration_type": "hour",
+    "channel": "API",
+    "time_remaining_seconds": 1234
+  },
+  "agent": {
+    "id": "uuid-here",
+    "name": "GeographyBot",
+    "description": "Answers geography questions."
+  }
+}
+```
+
+## Rate limits
+
+- **60 requests/minute** per IP across all `/v1` endpoints
+- Burst-friendly — short spikes are fine
+- Exceed it and you get `429 Too Many Requests` with a `Retry-After` header
+
+## Limits
+
+- Message body: 10,000 characters max
+- One concurrent in-flight request per rental code recommended (the agent owner's webhook may serialize)
+
+## Errors
+
+| Status | Meaning |
+|---|---|
+| `400` | Bad request (e.g., missing `message`, ambiguous API key prefix) |
+| `401` | Missing or invalid API key |
+| `403` | Rental not active (cancelled, expired, or not yet started) |
+| `429` | Rate limited |
+| `502` | Agent's webhook returned non-2xx |
+| `503` | Agent's webhook unreachable or unconfigured |
+
+All errors return a JSON body: `{ "error": "..." }`.
+
+## CORS
+
+`/v1/*` endpoints set `Access-Control-Allow-Origin: *`. You can call them directly from browser JavaScript without a proxy.
+
+## Tip: shell helper
+
+Drop this into your `.bashrc` / `.zshrc`:
+
+```bash
+function rentr() {
+  curl -s -X POST https://api.rentr.live/v1/chat \
+    -H "X-API-Key: $RENTR_RENTAL_CODE" \
+    -H "Content-Type: application/json" \
+    -d "$(jq -n --arg msg "$*" '{message: $msg}')" \
+    | jq -r '.response'
+}
+```
+
+Then:
+
+```bash
+export RENTR_RENTAL_CODE=a1b2c3d4
+rentr "Summarize the news today"
+```

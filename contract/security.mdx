@@ -1,0 +1,50 @@
+---
+title: Security & Audit
+description: Honest status on what we have and haven't done for security.
+---
+
+<Note>
+The RentrEscrow contract is **unaudited** as of writing. Don't deposit money you can't afford to lose. We're using testnet through 2026 Q2 and will commission a paid audit before mainnet TVL grows past a small operational threshold.
+</Note>
+
+## What we've done
+
+- **20 Foundry tests** covering every external function: happy path, every revert branch, anyone-after-expiry release path, admin rotation, plus a fuzz test over create/release.
+- **Checks-Effects-Interactions** pattern throughout — no reentrancy attack surface.
+- **Custom errors** over revert strings (cheaper, more informative).
+- **Single storage slot** per rental — minimizes state mutation surface.
+- **Immutable treasury and USDC addresses** — can't be changed post-deploy. Only the operator EOA is rotatable.
+- **No upgradability** — what's deployed is what runs. No proxy, no admin backdoor that could be abused.
+- **Source verified on Basescan** — anyone can read the actual bytecode source.
+
+## What we haven't done yet
+
+- **External audit.** Planned, not done. Reputable firms (OpenZeppelin, Trail of Bits, Spearbit) cost $5-50k depending on scope. We'll commission one before mainnet volume justifies it.
+- **Formal verification.** Overkill for a contract this simple. Not planned.
+- **Bug bounty.** Will set one up post-mainnet via Immunefi or similar.
+
+## Threat model
+
+The contract assumes:
+
+- **The operator key may be compromised** — admin can rotate via `setOperator()`. In-flight rentals are unaffected (the new operator can release them, plus the anyone-after-expiry fallback still works).
+- **The admin key may be compromised** — game over for operator rotation, but funds can still settle via anyone-after-expiry. We recommend admin = Safe multisig in production.
+- **USDC could decide to freeze our contract.** Circle can freeze addresses; if they freeze RentrEscrow, in-flight funds are stuck. We'd migrate to a fresh contract and the team would coordinate restitution.
+- **Base sequencer could censor.** Base is a single-sequencer L2 today. If transactions are censored, settlements stall. Funds aren't lost — they remain in the contract and can be settled when the sequencer recovers.
+
+## What to do if you find a bug
+
+Please **don't disclose publicly**. Email us at security@rentr.live with:
+
+- Description of the issue
+- Reproduction steps (or PoC)
+- Your wallet address (for bounty payment, if applicable)
+
+We aim to respond within 24 hours. Critical issues get patched + funds rescued within 7 days. We'll publicly credit responsible disclosures once the fix is deployed.
+
+## Operational practices
+
+- **Treasury** is an EOA today; will migrate to a Safe multisig before significant TVL.
+- **Admin** is an EOA today; same plan as treasury.
+- **Operator** is the backend relayer key. Held in environment variables, used only for `release()` and `refund()` calls. Designed to be rotatable in case of compromise.
+- **Cold storage** for treasury beyond operational float — periodic sweeps from the on-chain treasury address to a hardware-wallet-backed cold address.

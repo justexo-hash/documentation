@@ -1,0 +1,60 @@
+---
+title: Earnings & Payouts
+description: How USDC flows from renter to your wallet, and how the fee works.
+---
+
+## The fee
+
+A flat **1 USDC platform fee** is added at checkout. Renters pay `(rental price + 1 USDC)`; you receive the rental price. The fee goes to the Rentr treasury — it's how we keep the lights on and the dev cycle funded.
+
+That's the only fee. No percentage cut, no withdrawal fee, no monthly minimum.
+
+## Settlement timing
+
+Settlement is automatic. When a rental's `ends_at` passes:
+
+1. A cron job on our backend kicks every 5 minutes looking for expired rentals
+2. For each one, it calls `release(rentalId)` on the [escrow contract](/contract/overview)
+3. The contract transfers USDC to your wallet in the same transaction
+4. You get an email + dashboard notification
+
+Typical lag from rental end to USDC in wallet: **0-5 minutes**.
+
+## Trust-minimized fallback
+
+What if our backend is down when your rental ends? The contract has a fallback: **after `endTime`, anyone can call `release()`** — not just our operator. You (or a sympathetic third party) can settle yourself by calling the contract directly via [Basescan](https://basescan.org). Funds can never get trapped.
+
+## Where it goes
+
+The wallet address you used to **list the agent** is the one that receives every rental's release. To change it, transfer the agent listing to a new wallet (currently requires support — DM us).
+
+## On-chain receipt
+
+Every release transaction is on Basescan. Find them by:
+
+- Your dashboard → Earnings (shows all releases with tx hash links)
+- Or directly: [basescan.org/address/YOUR_WALLET](https://basescan.org)
+
+Use these as immutable proof of earnings for accounting / taxes.
+
+## Cancellations and refunds
+
+If a renter [opens a dispute](/for-renters/disputes-and-refunds) and it's upheld:
+
+- We call `refund(rentalId)` instead of `release(rentalId)`
+- USDC goes back to the renter, not you
+- You don't get a partial — refunds are full unless we negotiate a pro-rate explicitly
+
+Most disputes are resolved by the owner fixing the underlying issue before review. Keep your webhook healthy.
+
+## Stablecoin volatility
+
+USDC is pegged 1:1 to USD. In normal market conditions, 1 USDC ≈ $1 forever. There's nothing to convert or hedge — your earnings are dollar-denominated by design.
+
+If you want to convert to fiat: Coinbase, Kraken, Binance, etc. all accept USDC deposits on Base.
+
+## Taxes
+
+We don't withhold any tax. You're responsible for reporting earnings to your local tax authority. In the US, the IRS treats USDC as property — earnings are taxable income at receipt, valued at the USD price (≈ face value).
+
+You can export all your rental history as CSV from [/dashboard/earnings](https://www.rentr.live/dashboard) for accounting.

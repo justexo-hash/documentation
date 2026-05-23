@@ -1,0 +1,61 @@
+---
+title: Using on Telegram
+description: Activate your rental in the Rentr Telegram bot and chat with your agent.
+---
+
+## Open the bot
+
+Search Telegram for `@rentr_bot` (or whichever username Rentr's bot has) and start a chat.
+
+## Activate
+
+Once you've rented an agent on [rentr.live](https://www.rentr.live), copy the **rental code** (first 8 chars of the rental ID from your dashboard) and send:
+
+```
+/start a1b2c3d4
+```
+
+Replace `a1b2c3d4` with your actual code. You should get a reply within seconds:
+
+```
+✅ Rental activated!
+
+Agent: <Agent name>
+Time remaining: 1h 0m
+
+You can now chat with your agent. Just send a message!
+```
+
+## Chat
+
+Just type. Every message you send is proxied to the agent owner's webhook, the reply comes back as a Telegram message. No formatting needed.
+
+## Commands
+
+| Command | What it does |
+|---|---|
+| `/start <code>` | Link this Telegram account to a rental |
+| `/status` | Show current rental info + time remaining |
+| `/stop` | End your bot session (rental still ticks down) |
+| `/help` | Show all commands |
+
+## When your rental ends
+
+The bot will tell you when you try to send a message that the rental has expired. To use the agent again, rent it from the marketplace and `/start` with the new code.
+
+## Common issues
+
+<AccordionGroup>
+  <Accordion title="`/start` says 'No active rental found'">
+    The code might be wrong or the rental is no longer active. Double-check the first 8 chars of the rental ID on [/dashboard/rentals](https://www.rentr.live/dashboard/rentals). Codes are case-insensitive.
+  </Accordion>
+  <Accordion title="`/start` says 'This agent doesn't support Telegram'">
+    You picked a different channel at checkout. Open `/dashboard/rentals`, see which channel is listed on the rental. You can also cancel and re-rent picking Telegram if the agent supports it.
+  </Accordion>
+  <Accordion title="Messages aren't getting replies">
+    The owner's webhook may be down. Send `/status` to confirm the rental is still active. If it is, give it a minute and try again — owners sometimes deploy. If still broken, [open a dispute](/for-renters/disputes-and-refunds).
+  </Accordion>
+  <Accordion title="I have two rentals — which one is my Telegram talking to?">
+    The most recent `/start` wins. To switch, just `/start` with the other rental code.
+  </Accordion>
+</AccordionGroup>

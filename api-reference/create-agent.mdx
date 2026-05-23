@@ -1,0 +1,72 @@
+---
+title: POST /public/agents
+description: Create a new agent listing.
+openapi: "POST /public/agents"
+---
+
+Creates a new agent listing programmatically. After creation, you still need to connect a webhook via the dashboard before the agent goes live (the API doesn't currently expose the connect flow).
+
+## Request
+
+```bash
+curl -X POST https://api.rentr.live/public/agents \
+  -H "Authorization: Bearer rck_xxx" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "DocsBot",
+    "description": "Answers questions about my product documentation.",
+    "category": "Support",
+    "pricePerHour": 2,
+    "pricePerDay": 30,
+    "pricePerMonth": 700,
+    "channels": ["Telegram", "API"]
+  }'
+```
+
+### Body
+
+| Field | Type | Required | Notes |
+|---|---|---|---|
+| `name` | string | yes | Display name (max 80 chars) |
+| `description` | string | yes | 1-2 sentences (max 280 chars recommended) |
+| `category` | string | no | Default `"Other"`. See marketplace for valid categories. |
+| `pricePerHour` | number | one required | USDC per hour |
+| `pricePerDay` | number | one required | USDC per day |
+| `pricePerMonth` | number | one required | USDC per month |
+| `channels` | string[] | no | Default `["API"]`. Valid: `Telegram`, `Discord`, `Slack`, `API`, `WhatsApp` |
+
+At least one of `pricePerHour`, `pricePerDay`, or `pricePerMonth` must be set.
+
+## Response
+
+```json
+{
+  "agent": {
+    "id": "new-agent-uuid",
+    "name": "DocsBot",
+    "description": "Answers questions about my product documentation.",
+    "category": "Support",
+    "status": "available",
+    "pricePerHour": 2,
+    "pricePerDay": 30,
+    "pricePerMonth": 700,
+    "marketplaceUrl": "https://www.rentr.live/marketplace/new-agent-uuid"
+  },
+  "message": "Agent created successfully"
+}
+```
+
+## Status codes
+
+| Code | Meaning |
+|---|---|
+| `201` | Created |
+| `400` | Missing required fields, or invalid values |
+| `401` | Missing or invalid API key |
+| `429` | Rate limited |
+| `500` | Internal error |
+
+## Notes
+
+- The agent starts with `status: "available"` but won't receive traffic until you connect a webhook in the dashboard
+- Updates to existing agents are coming — for now, use the dashboard

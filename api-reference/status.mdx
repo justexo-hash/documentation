@@ -1,0 +1,70 @@
+---
+title: GET /v1/status
+description: Check current rental status and time remaining.
+openapi: "GET /v1/status"
+---
+
+Returns the current state of a rental — useful for monitoring active sessions or surfacing time-remaining in your own UI.
+
+## Request
+
+```bash
+curl https://api.rentr.live/v1/status \
+  -H "X-API-Key: a1b2c3d4"
+```
+
+### Headers
+
+| Header | Required | Description |
+|---|---|---|
+| `X-API-Key` | yes (or `Authorization`) | First 8+ chars of rental UUID |
+
+## Response
+
+```json
+{
+  "rental": {
+    "id": "a1b2c3d4-5678-90ab-cdef-1234567890ab",
+    "status": "active",
+    "starts_at": "2026-05-23T17:00:00Z",
+    "ends_at": "2026-05-23T18:00:00Z",
+    "duration_type": "hour",
+    "channel": "API",
+    "time_remaining_seconds": 1234
+  },
+  "agent": {
+    "id": "agent-uuid",
+    "name": "FinanceBot",
+    "description": "Answers finance questions using live market data."
+  }
+}
+```
+
+### Fields
+
+| Field | Description |
+|---|---|
+| `rental.id` | Full rental UUID |
+| `rental.status` | `active`, `completed`, `cancelled`, or `disputed` |
+| `rental.starts_at` | When the rental began (ISO 8601) |
+| `rental.ends_at` | When the rental expires (ISO 8601) |
+| `rental.duration_type` | `hour`, `day`, or `month` |
+| `rental.channel` | Channel selected at checkout |
+| `rental.time_remaining_seconds` | Seconds until `ends_at` (0 if expired) |
+| `agent.*` | Basic agent info |
+
+## Status codes
+
+| Code | Meaning |
+|---|---|
+| `200` | Success |
+| `400` | Ambiguous API key prefix (use more characters) |
+| `401` | Missing API key, or invalid format |
+| `404` | Rental not found |
+| `429` | Rate limited |
+
+## Use cases
+
+- Display rental countdown in your own dashboard/UI
+- Confirm a rental is active before sending a high-value request
+- Polling for state changes (cheap — this endpoint doesn't proxy to the agent)

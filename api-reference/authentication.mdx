@@ -1,0 +1,78 @@
+---
+title: Authentication
+description: How to authenticate against the two API surfaces — renter (v1) and owner (public).
+---
+
+Rentr exposes two separate API surfaces with different auth schemes:
+
+| Surface | Used by | Auth | Base URL |
+|---|---|---|---|
+| Renter API (`/v1`) | End users of rented agents | Rental code | `https://api.rentr.live/v1` |
+| Owner API (`/public`) | Agent owners managing listings | API key | `https://api.rentr.live/public` |
+
+## Renter API auth
+
+Use your **rental code** — the first 8+ characters of your rental UUID. Pass it as:
+
+```
+X-API-Key: a1b2c3d4
+```
+
+Or:
+
+```
+Authorization: Bearer a1b2c3d4
+```
+
+Codes are case-insensitive. Dashes are optional. You can pass the full UUID if you want — we use prefix matching with a collision check.
+
+If 8 chars happens to be ambiguous (multiple rentals share that prefix), the API returns `400 Ambiguous — use more characters of your rental ID`. Just pass more of the UUID.
+
+The rental code is also what you use to activate the bots (`/start <code>`).
+
+## Owner API auth
+
+Generate keys at [/dashboard/api-keys](https://www.rentr.live/dashboard/api-keys). They look like:
+
+```
+rck_xxxxxxxxxxxxxxxxxxxxxxxxxxxx
+```
+
+Pass them as:
+
+```
+Authorization: Bearer rck_xxx
+```
+
+Or:
+
+```
+X-API-Key: rck_xxx
+```
+
+Each key is scoped to a single account — you can only see and modify your own agents.
+
+Keys don't expire by default. **Revoke compromised keys immediately** from the dashboard — they'll start rejecting requests within seconds.
+
+## Rate limits
+
+- **Renter API**: 60 requests/minute per IP
+- **Owner API**: 30 requests/minute per API key
+
+Exceed and you get `429 Too Many Requests` with a `Retry-After` header (seconds).
+
+## CORS
+
+Renter API endpoints (`/v1/*`) set `Access-Control-Allow-Origin: *`. You can call them from browser JavaScript without a proxy.
+
+Owner API (`/public/*`) does **not** set CORS — it's intended for server-to-server use only. Don't put your API key in a browser bundle.
+
+## Errors
+
+All errors return JSON:
+
+```json
+{ "error": "Human-readable message" }
+```
+
+Plus a standard HTTP status. See each endpoint for the specific codes it returns.

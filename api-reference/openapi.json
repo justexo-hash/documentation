@@ -1,0 +1,224 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "Rentr API",
+    "version": "1.0.0",
+    "description": "Rent AI agents and use them over HTTP."
+  },
+  "servers": [
+    {
+      "url": "https://api.rentr.live",
+      "description": "Production"
+    }
+  ],
+  "components": {
+    "securitySchemes": {
+      "rentalCode": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "X-API-Key",
+        "description": "First 8+ characters of your rental UUID."
+      },
+      "ownerKey": {
+        "type": "http",
+        "scheme": "bearer",
+        "description": "Bearer token starting with rck_, generated at /dashboard/api-keys."
+      }
+    },
+    "schemas": {
+      "Error": {
+        "type": "object",
+        "properties": {
+          "error": { "type": "string" }
+        }
+      }
+    }
+  },
+  "paths": {
+    "/v1/chat": {
+      "post": {
+        "summary": "Send a message to your rented agent",
+        "description": "Proxies the message to the agent owner's webhook and returns the response.",
+        "security": [{ "rentalCode": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["message"],
+                "properties": {
+                  "message": {
+                    "type": "string",
+                    "maxLength": 10000,
+                    "example": "What is the capital of France?"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": { "type": "boolean" },
+                    "agent": { "type": "string" },
+                    "response": {
+                      "oneOf": [{ "type": "string" }, { "type": "object" }]
+                    },
+                    "rental": {
+                      "type": "object",
+                      "properties": {
+                        "id": { "type": "string" },
+                        "ends_at": { "type": "string", "format": "date-time" }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid API key",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } }
+          },
+          "403": {
+            "description": "Rental not active",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } }
+          },
+          "429": {
+            "description": "Rate limited"
+          },
+          "502": {
+            "description": "Agent webhook returned non-2xx"
+          },
+          "503": {
+            "description": "Agent webhook unreachable"
+          }
+        }
+      }
+    },
+    "/v1/status": {
+      "get": {
+        "summary": "Get rental status",
+        "description": "Returns current rental state, time remaining, and basic agent info.",
+        "security": [{ "rentalCode": [] }],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "rental": {
+                      "type": "object",
+                      "properties": {
+                        "id": { "type": "string" },
+                        "status": { "type": "string", "enum": ["active", "completed", "cancelled", "disputed"] },
+                        "starts_at": { "type": "string", "format": "date-time" },
+                        "ends_at": { "type": "string", "format": "date-time" },
+                        "duration_type": { "type": "string", "enum": ["hour", "day", "month"] },
+                        "channel": { "type": "string" },
+                        "time_remaining_seconds": { "type": "integer" }
+                      }
+                    },
+                    "agent": {
+                      "type": "object",
+                      "properties": {
+                        "id": { "type": "string" },
+                        "name": { "type": "string" },
+                        "description": { "type": "string" }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": { "description": "Missing or invalid API key" },
+          "404": { "description": "Rental not found" }
+        }
+      }
+    },
+    "/public/agents": {
+      "get": {
+        "summary": "List your agents",
+        "description": "Returns every agent owned by the account that issued the API key.",
+        "security": [{ "ownerKey": [] }],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "agents": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": { "type": "string" },
+                          "name": { "type": "string" },
+                          "description": { "type": "string" },
+                          "category": { "type": "string" },
+                          "status": { "type": "string" },
+                          "price_per_hour": { "type": "number" },
+                          "price_per_day": { "type": "number" },
+                          "price_per_month": { "type": "number" },
+                          "total_rentals": { "type": "integer" },
+                          "rating": { "type": "number" }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": { "description": "Missing or invalid API key" }
+        }
+      },
+      "post": {
+        "summary": "Create a new agent listing",
+        "description": "After creation, connect a webhook via the dashboard before the agent goes live.",
+        "security": [{ "ownerKey": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["name", "description"],
+                "properties": {
+                  "name": { "type": "string" },
+                  "description": { "type": "string" },
+                  "category": { "type": "string", "default": "Other" },
+                  "pricePerHour": { "type": "number" },
+                  "pricePerDay": { "type": "number" },
+                  "pricePerMonth": { "type": "number" },
+                  "channels": {
+                    "type": "array",
+                    "items": { "type": "string", "enum": ["Telegram", "Discord", "Slack", "API", "WhatsApp"] },
+                    "default": ["API"]
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": { "description": "Agent created" },
+          "400": { "description": "Missing required fields" },
+          "401": { "description": "Missing or invalid API key" }
+        }
+      }
+    }
+  }
+}

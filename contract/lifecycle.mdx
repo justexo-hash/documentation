@@ -1,0 +1,134 @@
+---
+title: Rental Lifecycle
+description: What happens on-chain from checkout to settlement.
+---
+
+## State diagram
+
+```
+        ┌─────────────────────────────────────────────────────────────┐
+        │                                                             │
+        │       (renter calls createRental)                           │
+        │                                                             │
+        ▼                                                             │
+   ┌─────────┐                                                        │
+   │  Held   │                                                        │
+   └────┬────┘                                                        │
+        │                                                             │
+        │       (operator anytime, or anyone after endTime)           │
+        ├──────────────────────────► release() ─────────► Released    │
+        │                                                             │
+        │       (operator on dispute)                                 │
+        └──────────────────────────► refund()  ─────────► Refunded    │
+```
+
+Each rental can only be in one terminal state — `Released` or `Refunded` are final, the contract reverts on double-spend attempts.
+
+## Step 1: `createRental`
+
+Called by the renter from their wallet during checkout.
+
+```solidity
+function createRental(
+  bytes32 rentalId,
+  address owner,
+  uint96 amount,
+  uint96 fee,
+  uint64 endTime
+) external;
+```
+
+- Pulls `amount + fee` USDC from `msg.sender` (the renter)
+- Stores the rental record with status `Held`
+- Emits `RentalCreated(rentalId, renter, owner, amount, fee, endTime)`
+
+Reverts if:
+- `rentalId` already exists (no duplicate creation)
+- `owner == address(0)` or `owner == msg.sender` (no self-rentals or burn-to-zero)
+- `endTime <= block.timestamp` (rental must be in the future)
+- USDC `transferFrom` fails (renter didn't approve enough)
+
+Renters pay gas (Base L2, fractions of a cent).
+
+## Step 2a: `release` (happy path)
+
+Called by our backend operator at the rental's `ends_at`. Anyone else can call after `endTime` if we're offline.
+
+```solidity
+function release(bytes32 rentalId) external;
+```
+
+- Sets rental status to `Released`
+- Transfers `amount` USDC → owner's wallet
+- Transfers `fee` USDC → treasury wallet
+- Emits `RentalReleased(rentalId, owner, amount, fee)`
+
+Reverts if:
+- Rental doesn't exist or isn't `Held`
+- Caller isn't operator AND `block.timestamp < endTime` (early release is operator-only)
+
+## Step 2b: `refund` (dispute path)
+
+Called by the operator after a dispute is upheld.
+
+```solidity
+function refund(bytes32 rentalId) external;
+```
+
+- Sets rental status to `Refunded`
+- Transfers `amount + fee` USDC → original renter's wallet (full amount, fee included)
+- Emits `RentalRefunded(rentalId, renter, amount, fee)`
+
+Reverts if:
+- Rental doesn't exist or isn't `Held`
+- Caller isn't operator
+
+There's no "anyone can refund" fallback — refunds require human judgment, and we don't want a malicious third party deciding what counts as a valid dispute.
+
+## Events
+
+```solidity
+event RentalCreated(
+  bytes32 indexed rentalId,
+  address indexed renter,
+  address indexed owner,
+  uint96 amount,
+  uint96 fee,
+  uint64 endTime
+);
+
+event RentalReleased(
+  bytes32 indexed rentalId,
+  address indexed owner,
+  uint96 amount,
+  uint96 fee
+);
+
+event RentalRefunded(
+  bytes32 indexed rentalId,
+  address indexed renter,
+  uint96 amount,
+  uint96 fee
+);
+
+event OperatorRotated(address indexed oldOperator, address indexed newOperator);
+```
+
+Subscribe to these via Basescan, an indexer, or your own RPC `eth_getLogs`. Useful for owner-side accounting or third-party analytics.
+
+## Reading state
+
+The `rentals(bytes32)` mapping is public, so anyone can read a rental's current state:
+
+```solidity
+function rentals(bytes32) external view returns (
+  address renter,
+  uint96 amount,
+  address owner,
+  uint96 fee,
+  uint64 endTime,
+  uint8 status   // 0 = Nonexistent, 1 = Held, 2 = Released, 3 = Refunded
+);
+```
+
+The Rentr backend uses this to re-verify rentals on-chain before persisting them in our database, as a defense-in-depth measure.

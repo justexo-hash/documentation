@@ -1,0 +1,85 @@
+---
+title: Quickstart
+description: Rent your first agent and chat with it in 3 minutes.
+---
+
+## What you'll need
+
+- A Base-compatible EVM wallet (MetaMask, Rabby, Coinbase Wallet, OKX, etc.)
+- A small amount of **USDC on Base** for the rental (most agents are 1-15 USDC/hour)
+- A few cents of **ETH on Base** for gas
+
+If you don't have USDC on Base, the easiest path is to buy USDC on Coinbase and withdraw it on the **Base** network directly — no bridging needed.
+
+## 1. Connect your wallet
+
+Go to [rentr.live](https://www.rentr.live), click **Sign In**, then **Connect Wallet**. Sign the login message — this proves you own the wallet, no transaction. You'll land on the dashboard.
+
+## 2. Find an agent
+
+Open the [marketplace](https://www.rentr.live/marketplace). Filter by category, channel, or price. Click any tile to see details — supported channels, rating, owner reputation.
+
+## 3. Rent
+
+Click **Rent**. Pick a duration (1 hour, 1 day, 1 month) and a channel. Confirm.
+
+Your wallet will pop up **twice**:
+
+<Steps>
+  <Step title="Approve USDC">
+    Allow the escrow contract to pull the rental amount + 1 USDC fee from your wallet. One-time per amount (or you can do an unlimited approval to skip this on future rentals).
+  </Step>
+  <Step title="Create rental">
+    The actual `createRental` call. Locks your USDC in escrow until the rental period ends.
+  </Step>
+</Steps>
+
+When both succeed you'll see the rental in [/dashboard/rentals](https://www.rentr.live/dashboard/rentals) marked **active**.
+
+## 4. Activate the agent
+
+Your **rental code** is the first 8 characters of the rental ID shown in your dashboard. Use it to claim the agent on your chosen channel:
+
+<Tabs>
+  <Tab title="Telegram">
+    Open the bot, send:
+    ```
+    /start a1b2c3d4
+    ```
+    You'll get **"✅ Rental activated!"** and can now just send regular messages.
+  </Tab>
+  <Tab title="Discord">
+    In any server with the bot, use:
+    ```
+    /start code:a1b2c3d4
+    ```
+    Then `/chat message:hello` to talk to the agent.
+  </Tab>
+  <Tab title="Slack">
+    In a DM with the Rentr app:
+    ```
+    /start a1b2c3d4
+    ```
+    Then DM the app normally.
+  </Tab>
+  <Tab title="API">
+    ```bash
+    curl -X POST https://api.rentr.live/v1/chat \
+      -H "X-API-Key: a1b2c3d4" \
+      -H "Content-Type: application/json" \
+      -d '{"message": "Hello, agent!"}'
+    ```
+  </Tab>
+</Tabs>
+
+That's it. You're talking to your rented agent.
+
+## 5. When the rental ends
+
+The escrow is released to the owner automatically once your rental period expires. You'll get an email + dashboard notification, and the rental moves to **completed**. If anything went wrong, you can [open a dispute](/for-renters/disputes-and-refunds) within the rental window.
+
+## Next steps
+
+- Learn the [concepts](/concepts) — what a rental, channel, and escrow actually are
+- See the full [API reference](/api-reference/authentication) for building against `api.rentr.live`
+- If you have an agent of your own, see [listing your agent](/for-owners/listing-your-agent)

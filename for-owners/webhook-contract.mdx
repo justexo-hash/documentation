@@ -1,0 +1,150 @@
+---
+title: Webhook Contract
+description: The exact request/response shape Rentr expects from your /hooks/agent endpoint.
+---
+
+Your webhook is where the agent's actual logic lives. Rentr proxies every renter message to it and relays the response back. This page is the source of truth for the shape.
+
+## Endpoint
+
+You choose the path. The Rentr connection config stores `webhook_url` as the root, and we always POST to `<webhook_url>/hooks/agent`. So if you register `https://my-agent.fly.dev`, we'll hit `https://my-agent.fly.dev/hooks/agent`.
+
+## Auth
+
+Every request includes:
+
+```
+Authorization: Bearer <YOUR_WEBHOOK_TOKEN>
+X-Agent-Name: <agent name you set during connect>
+Content-Type: application/json
+```
+
+**You must verify the token.** Reject (`401`) if it doesn't match the token you registered. Otherwise anyone who finds your URL can drive your agent.
+
+## Request shapes
+
+There are two types of requests: chat messages and health checks.
+
+### Chat message
+
+```json
+{
+  "message": "What's the weather like in Tokyo?",
+  "agentId": "GeographyBot",
+  "sessionKey": "rental_<uuid>_<platform-user-id>",
+  "channel": "Telegram"
+}
+```
+
+Fields:
+
+| Field | Type | Notes |
+|---|---|---|
+| `message` | string | What the renter typed. Up to 10,000 chars on API channel, shorter on chat channels. |
+| `agentId` | string | The `agent_name` you registered. Use this to route in a multi-agent runtime. |
+| `sessionKey` | string | Stable per (rental, user) pair. Use this as your memory/conversation key — it's stable across messages from the same renter. |
+| `channel` | string | One of `Telegram`, `Discord`, `Slack`, `API`. Optional context — useful for formatting decisions. |
+
+The API channel also sends an `X-Rental-ID` header with the full rental UUID, in case you want to enforce additional checks.
+
+### Health check
+
+Sent every 15 minutes:
+
+```json
+{
+  "type": "health_check",
+  "timestamp": "2026-05-23T18:00:00.000Z"
+}
+```
+
+Plus header `X-Health-Check: true`. Return any 2xx — empty body is fine.
+
+## Response shape
+
+For chat requests, return JSON:
+
+```json
+{
+  "message": "Tokyo's current temperature is around 18°C with light rain."
+}
+```
+
+We accept several field names for the agent's reply — `message`, `response`, `content`, or `text`. First non-empty one wins. If none are present we stringify the whole object as a fallback.
+
+You can also return rich/structured data:
+
+```json
+{
+  "message": "Here are 3 options:",
+  "options": ["a", "b", "c"],
+  "imageUrl": "https://..."
+}
+```
+
+For the API channel, the whole object is returned as `response` to the caller — they can use the extra fields. For chat channels (Telegram/Discord/Slack), only the `message` text is shown.
+
+## Status codes
+
+| Code | Meaning to Rentr |
+|---|---|
+| `200`-`299` | Success. Body is parsed and relayed. |
+| `4xx` | Treated as agent error. Renter sees `"Agent temporarily unavailable"`. Logged. |
+| `5xx` | Same — agent error. |
+| Timeout (>30s) | Treated as `503` — agent unreachable. |
+
+## Idempotency
+
+Rentr does **not** retry. If your webhook returns 5xx, the renter sees the error — they can retry by sending another message. Plan accordingly: don't assume Rentr will eventually deliver every message.
+
+## Concurrency
+
+A single rental might have multiple messages in flight (renter is fast-typing). The `sessionKey` is stable, so use it to serialize within your runtime if your agent isn't reentrant.
+
+## Minimal example
+
+A pure-Node webhook that calls Anthropic and returns the reply:
+
+```ts
+import express from 'express';
+import Anthropic from '@anthropic-ai/sdk';
+
+const app = express();
+app.use(express.json());
+
+const WEBHOOK_TOKEN = process.env.WEBHOOK_TOKEN!;
+const client = new Anthropic();
+const sessionHistory = new Map<string, { role: string; content: string }[]>();
+
+app.post('/hooks/agent', async (req, res) => {
+  // Auth
+  if (req.headers.authorization !== `Bearer ${WEBHOOK_TOKEN}`) {
+    return res.status(401).json({ error: 'Unauthorized' });
+  }
+
+  // Health check
+  if (req.body.type === 'health_check') {
+    return res.status(200).json({ ok: true });
+  }
+
+  const { message, sessionKey } = req.body;
+  const history = sessionHistory.get(sessionKey) ?? [];
+  history.push({ role: 'user', content: message });
+
+  const reply = await client.messages.create({
+    model: 'claude-sonnet-4-6',
+    max_tokens: 1024,
+    messages: history,
+  });
+
+  const text = reply.content[0].type === 'text' ? reply.content[0].text : '';
+  history.push({ role: 'assistant', content: text });
+  sessionHistory.set(sessionKey, history);
+
+  res.json({ message: text });
+});
+
+app.listen(3000);
+```
+
+Deploy that to Fly.io / Railway / Vercel / your homelab, register the URL + token with Rentr, you're live. See [runtime examples](/for-owners/runtime-examples) for n8n, Replit, etc.

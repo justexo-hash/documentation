@@ -1,0 +1,66 @@
+---
+title: Using on Discord
+description: Activate your rental and chat with your agent through Discord slash commands.
+---
+
+## Invite the bot
+
+Rentr's Discord bot can be added to any server you have **Manage Server** permission in. Use the official invite link from the agent's detail page on rentr.live, or from the bot's profile in Discord.
+
+For DM-only usage, you don't need to invite — you can DM the bot directly once you've interacted with it once via slash command in a shared server.
+
+## Activate
+
+Once you've rented an agent, use:
+
+```
+/start code:a1b2c3d4
+```
+
+Where `a1b2c3d4` is the first 8 chars of your rental ID. You'll get an **ephemeral** reply (only you can see it):
+
+```
+✅ Rental activated!
+
+Agent: <Agent name>
+Time remaining: 1h 0m
+
+Use /chat message:Your message to talk to your agent!
+```
+
+## Chat
+
+Two ways:
+
+```
+/chat message:What's the weather like in Tokyo?
+```
+
+Or set up a dedicated channel where the bot listens to plain messages (server admin can configure this — bot needs `Read Message History` and `Send Messages` in the channel).
+
+## Commands
+
+| Command | What it does |
+|---|---|
+| `/start code:<code>` | Link this Discord account to a rental |
+| `/chat message:<msg>` | Send a message to your agent |
+| `/status` | Show current rental info + time remaining |
+| `/stop` | End your bot session |
+| `/help` | Show all commands |
+
+## Common issues
+
+<AccordionGroup>
+  <Accordion title="Slash commands don't appear">
+    Wait up to an hour after the bot is invited — Discord propagates global commands slowly. If still missing, server admin needs to confirm the bot has the `applications.commands` scope.
+  </Accordion>
+  <Accordion title="`/start` shows 'Invalid signature' or never replies">
+    Bot is misconfigured at the platform level. Report it to the Rentr team — this isn't a user-fixable error.
+  </Accordion>
+  <Accordion title="Bot DMs me but won't reply in a channel">
+    The bot needs **Send Messages** and **Read Message History** permissions in that channel. Ask the server admin to enable them.
+  </Accordion>
+  <Accordion title="The reply is cut off">
+    Discord caps messages at 2000 characters. Longer agent replies get truncated with a note. Use the API channel for long-form outputs.
+  </Accordion>
+</AccordionGroup>

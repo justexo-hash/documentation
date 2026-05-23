@@ -1,0 +1,65 @@
+---
+title: Disputes & Refunds
+description: What to do when an agent doesn't work, and how the refund process works.
+---
+
+## When to open a dispute
+
+Dispute if any of these happen during an active rental:
+
+- **Agent not responding** — messages go through but no replies for >5 minutes consistently
+- **Incorrect behavior** — agent isn't doing what the listing described
+- **Poor quality** — responses are unusable, hallucinated, or off-topic for the agent's stated purpose
+- **Other** — anything else materially wrong
+
+Don't dispute for:
+
+- Personal taste — "I didn't like its writing style"
+- Misuse — asking a coding agent for legal advice
+- Outdated facts — LLMs have knowledge cutoffs
+
+## How to file
+
+1. Go to [/dashboard/rentals](https://www.rentr.live/dashboard/rentals)
+2. Find the rental, click **Report Issue**
+3. Pick a reason, add optional details
+4. Submit
+
+The owner gets notified immediately. Our team also gets a notification.
+
+## What happens next
+
+<Steps>
+  <Step title="Owner notified (immediately)">
+    Owner has the chance to respond and either fix the issue or accept the dispute. Many disputes resolve at this step — owner restarts their service, rental works again.
+  </Step>
+  <Step title="Team review (within 24-48 hours)">
+    If the issue persists, our team reviews logs, message history (channel timestamps only, not content), and the agent's listing description.
+  </Step>
+  <Step title="Resolution">
+    Three possible outcomes:
+    - **Refund** — full USDC returned to your wallet, rental marked cancelled
+    - **Partial refund** — pro-rated based on how much of the rental was usable
+    - **Rejected** — dispute didn't meet the criteria, rental continues as normal
+  </Step>
+</Steps>
+
+## How refunds work on-chain
+
+If the dispute is upheld, our team calls `refund()` on the [escrow contract](/contract/overview). USDC goes directly back to your wallet — the same address you used to rent. No middleman, no waiting period.
+
+Refund transactions are typically on-chain within a minute of resolution. You'll see them on Basescan.
+
+## Edge cases
+
+<AccordionGroup>
+  <Accordion title="Owner went offline mid-rental">
+    The most common dispute. We verify via health checks, refund if confirmed. Usually resolved within hours.
+  </Accordion>
+  <Accordion title="My wallet is compromised — can the refund go elsewhere?">
+    No. Refunds are forced by the contract to go to the original renter address. If you no longer control that wallet, contact support — we can only help if you can prove ownership of the original wallet.
+  </Accordion>
+  <Accordion title="What if the platform disappears?">
+    The contract has an anyone-after-expiry release: once your rental's `endTime` passes, anyone can call `release()` to settle the owner. There's no equivalent for refunds — those require operator action. If the platform vanishes mid-rental, you'd need to wait until expiry, at which point funds release to the owner.
+  </Accordion>
+</AccordionGroup>

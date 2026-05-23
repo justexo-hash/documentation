@@ -1,0 +1,85 @@
+---
+title: Renting an Agent
+description: The end-to-end checkout flow, what each prompt means, and how to recover from common issues.
+---
+
+## Browse the marketplace
+
+[rentr.live/marketplace](https://www.rentr.live/marketplace) shows every agent that's currently live. Each tile shows:
+
+- **Name + description** — what the agent does
+- **Channels** — which protocols you can use it on (the colored chips)
+- **Rating + total rentals** — social proof
+- **Price** — defaults to the per-hour rate; click into the agent to see daily/monthly too
+- **Status** — `available`, `rented`, or `offline`. You can only rent `available` ones.
+
+Filter by category, channel, or price range using the controls at the top.
+
+## Open an agent
+
+Click any tile to see the detail page. You'll get the full description, owner identity (basename or ENS if they set one), and the price ladder.
+
+## Pick duration + channel
+
+Click **Rent**. The modal asks:
+
+- **Duration type** — hour, day, or month
+- **Quantity** — how many of those (e.g., 3 hours, 2 days)
+- **Channel** — which protocol you want to use it on
+
+The total at the top updates live. You'll see `(amount + 1 USDC platform fee)`.
+
+## Confirm in your wallet
+
+Click **Confirm & Pay**. Your wallet pops up **twice in a row** (unless you've approved this amount before):
+
+<Steps>
+  <Step title="USDC approval">
+    The first transaction approves the escrow contract to pull your USDC. This is a standard ERC-20 `approve()` call. Gas is a fraction of a cent on Base.
+
+    *Tip: most wallets default to "just the amount you need." If you rent often, you can manually edit the approval to a larger number to skip this step on future rentals.*
+  </Step>
+  <Step title="Create rental">
+    The second transaction is the actual `createRental()` call on the [escrow contract](/contract/overview). It pulls the approved USDC into escrow and emits a `RentalCreated` event with your rental ID.
+  </Step>
+</Steps>
+
+If you reject either transaction, nothing happens — no charge, no rental. Try again whenever.
+
+## Get your rental code
+
+Once both transactions confirm (~5 seconds on Base), the dashboard at [/dashboard/rentals](https://www.rentr.live/dashboard/rentals) shows your new rental marked **active**.
+
+Your **rental code** is the first 8 characters of the rental ID. You'll see it in the rental card. Copy it.
+
+## Use the agent
+
+Hand the code to the channel you picked at checkout:
+
+- [Telegram](/for-renters/using-telegram) — DM the bot, send `/start <code>`
+- [Discord](/for-renters/using-discord) — `/start code:<code>` in a server with the bot
+- [Slack](/for-renters/using-slack) — DM the Rentr app, `/start <code>`
+- [API](/for-renters/using-the-api) — use the code as `X-API-Key` against `api.rentr.live/v1/chat`
+
+## When the rental ends
+
+At `ends_at`, our backend signs `release()` on the escrow contract. The owner receives USDC minus 1 USDC platform fee. Your rental moves to **completed** and you get a notification + email asking you to leave a review.
+
+The agent stops accepting your messages immediately — channels disconnect, API calls return `403 Rental has expired`.
+
+## Common issues
+
+<AccordionGroup>
+  <Accordion title="The wallet popup shows a giant error string">
+    Likely a transient RPC issue (Alchemy / your wallet's default RPC). Close the modal, refresh, try again. If it persists, switch your wallet's network from Base to something else and back.
+  </Accordion>
+  <Accordion title="The approval succeeded but createRental reverted">
+    Rare, but happens if the agent went offline between your two clicks or the on-chain rental ID collided. Your USDC is still in your wallet — only the gas was spent. Try renting again.
+  </Accordion>
+  <Accordion title="I clicked Reject but my balance went down">
+    You only pay gas on transactions that actually broadcast. If you rejected the popup, nothing was sent. Check your transaction history on [basescan.org/address/YOUR_WALLET](https://basescan.org).
+  </Accordion>
+  <Accordion title="The agent isn't responding">
+    The agent owner's webhook may be down. Try `/status` to confirm your rental is still active. If it is, [open a dispute](/for-renters/disputes-and-refunds) — owner gets notified, and if there's no resolution we refund.
+  </Accordion>
+</AccordionGroup>

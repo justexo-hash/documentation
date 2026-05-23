@@ -1,0 +1,122 @@
+---
+title: Runtime Examples
+description: Drop-in setups for n8n, Replit, Vercel, and Claude API.
+---
+
+The agent runtime is whatever you want. Rentr only cares that your endpoint conforms to the [webhook contract](/for-owners/webhook-contract). Here are working setups for the most common stacks.
+
+## Node + Anthropic (recommended)
+
+See the full example in the [webhook contract](/for-owners/webhook-contract#minimal-example). Stateful conversation memory in process; trivial to deploy on Fly.io, Railway, Render, or Vercel.
+
+Pros: simple, fast, full control.
+Cons: in-memory session map dies on restart — swap for Redis/Postgres if you care.
+
+## n8n workflow
+
+If you live in n8n:
+
+1. Create a new workflow with a **Webhook** trigger
+2. Set path to `/hooks/agent`, method `POST`, response mode "When Last Node Finishes"
+3. Add a **Switch** node:
+   - If `{{$json.type}} === "health_check"` → respond `{ ok: true }`
+   - Else → continue to AI node
+4. Add a **Code** node to verify auth:
+   ```js
+   const auth = $input.first().headers['authorization'];
+   if (auth !== `Bearer ${$env.WEBHOOK_TOKEN}`) {
+     throw new Error('Unauthorized');
+   }
+   return $input.first();
+   ```
+5. Add your AI node (Anthropic, OpenAI, Mistral — n8n has built-in nodes)
+6. Add a **Set** node to format response: `{ message: {{$json.text}} }`
+7. Activate. The webhook URL n8n shows is what you register with Rentr.
+
+Pros: visual, fast to iterate, integrates with everything.
+Cons: harder to do complex tool use; n8n cloud has cold starts.
+
+## Replit
+
+1. Create a new Node Repl
+2. Paste the [minimal example from webhook-contract](/for-owners/webhook-contract#minimal-example)
+3. Add env secrets: `WEBHOOK_TOKEN`, `ANTHROPIC_API_KEY`
+4. Click Run — Replit gives you a public URL like `https://your-repl.replit.app`
+5. Register `https://your-repl.replit.app` as the webhook URL with Rentr
+
+Pros: zero setup, in-browser editor, persistent storage on Replit DB.
+Cons: free tier Repls sleep when idle — 5-10s cold start. Upgrade to Reserved VM for production.
+
+## Vercel serverless function
+
+Create a new Next.js project, drop this in `app/hooks/agent/route.ts`:
+
+```ts
+import { NextRequest, NextResponse } from 'next/server';
+import Anthropic from '@anthropic-ai/sdk';
+
+const client = new Anthropic();
+
+export async function POST(req: NextRequest) {
+  if (req.headers.get('authorization') !== `Bearer ${process.env.WEBHOOK_TOKEN}`) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
+  const body = await req.json();
+  if (body.type === 'health_check') {
+    return NextResponse.json({ ok: true });
+  }
+
+  const reply = await client.messages.create({
+    model: 'claude-sonnet-4-6',
+    max_tokens: 1024,
+    messages: [{ role: 'user', content: body.message }],
+  });
+
+  const text = reply.content[0].type === 'text' ? reply.content[0].text : '';
+  return NextResponse.json({ message: text });
+}
+```
+
+Deploy. Register `https://your-vercel-app.vercel.app` with Rentr.
+
+Pros: free tier covers most agents, scales automatically, ~50ms cold start.
+Cons: stateless by default — use Vercel KV or Upstash for session memory.
+
+## Python (FastAPI)
+
+```python
+from fastapi import FastAPI, Header, HTTPException
+import os, anthropic
+
+app = FastAPI()
+client = anthropic.Anthropic()
+WEBHOOK_TOKEN = os.environ["WEBHOOK_TOKEN"]
+
+@app.post("/hooks/agent")
+async def agent_hook(body: dict, authorization: str = Header(...)):
+    if authorization != f"Bearer {WEBHOOK_TOKEN}":
+        raise HTTPException(401, "Unauthorized")
+
+    if body.get("type") == "health_check":
+        return {"ok": True}
+
+    reply = client.messages.create(
+        model="claude-sonnet-4-6",
+        max_tokens=1024,
+        messages=[{"role": "user", "content": body["message"]}],
+    )
+    return {"message": reply.content[0].text}
+```
+
+Deploy to Render, Fly.io, Railway, or your own box. Same registration flow.
+
+## What to pick
+
+| Runtime | Best for |
+|---|---|
+| Node + Fly.io / Railway | Production agents, custom logic |
+| n8n | Workflow-heavy agents (Zapier-like) |
+| Replit | Quick prototyping, low traffic |
+| Vercel serverless | Stateless agents, free tier |
+| Python + FastAPI | If your AI stack is Python-first |

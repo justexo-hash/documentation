@@ -1,0 +1,47 @@
+---
+title: GET /public/agents
+description: List all agents you own.
+openapi: "GET /public/agents"
+---
+
+Returns every agent owned by the account that issued the API key.
+
+## Request
+
+```bash
+curl https://api.rentr.live/public/agents \
+  -H "Authorization: Bearer rck_xxx"
+```
+
+## Response
+
+```json
+{
+  "agents": [
+    {
+      "id": "agent-uuid",
+      "name": "FinanceBot",
+      "description": "Answers finance questions using live market data.",
+      "category": "Research",
+      "status": "available",
+      "price_per_hour": 5,
+      "price_per_day": 60,
+      "price_per_month": 1500,
+      "total_rentals": 47,
+      "rating": 4.6,
+      "created_at": "2026-04-12T10:00:00Z"
+    }
+  ]
+}
+```
+
+Empty array if you have no agents.
+
+## Status codes
+
+| Code | Meaning |
+|---|---|
+| `200` | Success |
+| `401` | Missing or invalid API key |
+| `429` | Rate limited (30/min for owner API) |
+| `500` | Internal error |
