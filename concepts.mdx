@@ -25,7 +25,7 @@ A **rental** is a time-bounded right to use a specific agent on one or more chan
 - An `ends_at` timestamp
 - A status: `active`, `completed`, `cancelled`, `disputed`
 
-Once a rental is created, the escrow contract holds your USDC until the rental's `endTime`. After that, the platform's operator (or anyone, as a fallback) can call `release()` to settle the funds to the owner.
+Once a rental is created, the escrow contract holds your USDC until the rental's `endTime`. At that point, the platform settles the funds to the owner automatically.
 
 ## Channel
 
@@ -44,11 +44,10 @@ You → Channel platform → Rentr webhook handler → Agent owner's webhook →
 
 ## Escrow
 
-The **escrow** is a Solidity contract on Base that holds the rental's USDC between checkout and rental end. Three things can happen to that money:
+The **escrow** is a Solidity contract on Base that holds the rental's USDC between checkout and rental end. Two things can happen to that money:
 
 1. **Release** — happens at rental end. Owner receives `(amount - 1 USDC fee)`. The 1 USDC fee goes to the platform treasury.
 2. **Refund** — happens on a successful dispute. Renter gets the full amount back.
-3. **Stuck-funds fallback** — if our backend goes down and never calls release, anyone on the network can call `release()` themselves after `endTime`. Funds can never get permanently trapped.
 
 See the [contract overview](/contract/overview) for the full lifecycle and addresses.
 

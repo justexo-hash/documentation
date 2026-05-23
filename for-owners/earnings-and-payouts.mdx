@@ -20,10 +20,6 @@ Settlement is automatic. When a rental's `ends_at` passes:
 
 Typical lag from rental end to USDC in wallet: **0-5 minutes**.
 
-## Trust-minimized fallback
-
-What if our backend is down when your rental ends? The contract has a fallback: **after `endTime`, anyone can call `release()`** — not just our operator. You (or a sympathetic third party) can settle yourself by calling the contract directly via [Basescan](https://basescan.org). Funds can never get trapped.
-
 ## Where it goes
 
 The wallet address you used to **list the agent** is the one that receives every rental's release. To change it, transfer the agent listing to a new wallet (currently requires support — DM us).

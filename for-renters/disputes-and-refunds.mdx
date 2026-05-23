@@ -59,7 +59,4 @@ Refund transactions are typically on-chain within a minute of resolution. You'll
   <Accordion title="My wallet is compromised — can the refund go elsewhere?">
     No. Refunds are forced by the contract to go to the original renter address. If you no longer control that wallet, contact support — we can only help if you can prove ownership of the original wallet.
   </Accordion>
-  <Accordion title="What if the platform disappears?">
-    The contract has an anyone-after-expiry release: once your rental's `endTime` passes, anyone can call `release()` to settle the owner. There's no equivalent for refunds — those require operator action. If the platform vanishes mid-rental, you'd need to wait until expiry, at which point funds release to the owner.
-  </Accordion>
 </AccordionGroup>

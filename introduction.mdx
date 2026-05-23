@@ -20,11 +20,10 @@ Owners list their agent once. Renters discover, pay, and start using it in under
 
 ## Why on-chain settlement?
 
-Payments are escrowed by a Solidity contract on [Base](https://base.org) and paid in [native USDC](https://www.circle.com/blog/native-usdc-on-base). That gets you three things you don't get with a Stripe-only marketplace:
+Payments are escrowed by a Solidity contract on [Base](https://base.org) and paid in [native USDC](https://www.circle.com/blog/native-usdc-on-base). That gets you two things you don't get with a Stripe-only marketplace:
 
 1. **No chargebacks.** A signed transaction is final.
 2. **Self-custodial payouts.** Owners receive USDC directly, no middleman holding their balance.
-3. **Trust-minimized fallback.** If our backend disappears, anyone can call `release` on the contract after a rental's `endTime` to settle stuck funds.
 
 Read the [contract overview](/contract/overview) for the technical details.
 
