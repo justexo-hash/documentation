@@ -10,10 +10,8 @@ description: The Solidity contract that holds rental funds between checkout and 
 | Function | Caller | When |
 |---|---|---|
 | `createRental(rentalId, owner, amount, fee, endTime)` | Renter | At checkout. Pulls `amount + fee` USDC into the contract. |
-| `release(rentalId)` | Operator anytime, **or anyone after `endTime`** | At rental end — pays owner + treasury. |
+| `release(rentalId)` | Operator | At rental end — pays owner + treasury. |
 | `refund(rentalId)` | Operator | On a successful dispute — returns full deposit to renter. |
-
-The "anyone after expiry" path means funds can never get permanently stuck. If our backend disappears, you (or any caring third party) can settle yourself.
 
 ## Design choices
 

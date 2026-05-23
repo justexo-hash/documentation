@@ -15,7 +15,7 @@ description: What happens on-chain from checkout to settlement.
    │  Held   │                                                        │
    └────┬────┘                                                        │
         │                                                             │
-        │       (operator anytime, or anyone after endTime)           │
+        │       (operator settles at endTime)                          │
         ├──────────────────────────► release() ─────────► Released    │
         │                                                             │
         │       (operator on dispute)                                 │
@@ -52,7 +52,7 @@ Renters pay gas (Base L2, fractions of a cent).
 
 ## Step 2a: `release` (happy path)
 
-Called by our backend operator at the rental's `ends_at`. Anyone else can call after `endTime` if we're offline.
+Called by our backend operator at the rental's `ends_at`.
 
 ```solidity
 function release(bytes32 rentalId) external;
@@ -65,7 +65,7 @@ function release(bytes32 rentalId) external;
 
 Reverts if:
 - Rental doesn't exist or isn't `Held`
-- Caller isn't operator AND `block.timestamp < endTime` (early release is operator-only)
+- Caller isn't authorized to release
 
 ## Step 2b: `refund` (dispute path)
 
@@ -82,8 +82,6 @@ function refund(bytes32 rentalId) external;
 Reverts if:
 - Rental doesn't exist or isn't `Held`
 - Caller isn't operator
-
-There's no "anyone can refund" fallback — refunds require human judgment, and we don't want a malicious third party deciding what counts as a valid dispute.
 
 ## Events
 

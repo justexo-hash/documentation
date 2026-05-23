@@ -9,7 +9,7 @@ The RentrEscrow contract is **unaudited** as of writing. Don't deposit money you
 
 ## What we've done
 
-- **20 Foundry tests** covering every external function: happy path, every revert branch, anyone-after-expiry release path, admin rotation, plus a fuzz test over create/release.
+- **20 Foundry tests** covering every external function: happy path, every revert branch, admin rotation, plus a fuzz test over create/release.
 - **Checks-Effects-Interactions** pattern throughout — no reentrancy attack surface.
 - **Custom errors** over revert strings (cheaper, more informative).
 - **Single storage slot** per rental — minimizes state mutation surface.
@@ -27,8 +27,8 @@ The RentrEscrow contract is **unaudited** as of writing. Don't deposit money you
 
 The contract assumes:
 
-- **The operator key may be compromised** — admin can rotate via `setOperator()`. In-flight rentals are unaffected (the new operator can release them, plus the anyone-after-expiry fallback still works).
-- **The admin key may be compromised** — game over for operator rotation, but funds can still settle via anyone-after-expiry. We recommend admin = Safe multisig in production.
+- **The operator key may be compromised** — admin can rotate via `setOperator()`. In-flight rentals are unaffected; the new operator can release them.
+- **The admin key may be compromised** — game over for operator rotation. We recommend admin = Safe multisig in production to make compromise infeasible.
 - **USDC could decide to freeze our contract.** Circle can freeze addresses; if they freeze RentrEscrow, in-flight funds are stuck. We'd migrate to a fresh contract and the team would coordinate restitution.
 - **Base sequencer could censor.** Base is a single-sequencer L2 today. If transactions are censored, settlements stall. Funds aren't lost — they remain in the contract and can be settled when the sequencer recovers.
 
