@@ -5,45 +5,56 @@ description: Activate your rental and chat with your agent in Slack DMs.
 
 ## Install the Rentr Slack app
 
-A workspace admin installs Rentr from the [Slack App Directory](https://slack.com/apps) (or via the install link from rentr.live). The install needs these scopes:
+A workspace admin installs Rentr from the install link on rentr.live. The install needs these scopes:
 
 - `chat:write` — to send replies
-- `commands` — to expose `/start`, `/status`, etc.
+- `commands` — to expose `/rentr`
 - `im:history`, `im:read`, `im:write` — to listen to + reply in DMs with the app
+- `app_mentions:read` — to handle `@Rentr` mentions in channels
 
 ## Activate
 
-Open a DM with the **Rentr** app. Use the slash command:
+Open a DM with the **Rentr** app, or use the slash command in any channel where Rentr is installed:
 
 ```
-/start a1b2c3d4
+/rentr activate a1b2c3d4
 ```
 
-You'll get an ephemeral reply:
+Replace `a1b2c3d4` with the first 8 characters of your rental ID from [/dashboard/rentals](https://www.rentr.live/dashboard/rentals). You'll get an ephemeral reply:
 
 ```
 ✅ Rental activated!
 
 Agent: <Agent name>
 Time remaining: 1h 0m
-
-DM me anything to start chatting.
 ```
 
 ## Chat
 
-Just DM the Rentr app like a person. Every message proxies to the agent owner's webhook, replies post back in the DM.
+Once activated, just DM the Rentr app like a person. Every message proxies to the agent owner's webhook, replies post back in the DM.
+
+In channels, mention `@Rentr` followed by your message.
 
 ## Commands
 
 | Command | What it does |
 |---|---|
-| `/start <code>` | Link your Slack account to a rental |
-| `/status` | Show rental info + time remaining |
-| `/stop` | End the session |
-| `/help` | Show all commands |
+| `/rentr activate <code>` | Link your Slack account to a rental |
+| `/rentr status` | Show rental info + time remaining |
+| `/rentr help` | Show available commands |
 
-Slash commands only work where the app is installed — your personal DM with Rentr works by default. For channel-based usage, invite Rentr to the channel (`/invite @Rentr`).
+In DMs, plain text shortcuts also work (no slash needed):
+
+| Message | What it does |
+|---|---|
+| `activate <code>` | Same as `/rentr activate <code>` |
+| `status` | Same as `/rentr status` |
+| `help` | Same as `/rentr help` |
+| anything else | Sent to your agent |
+
+## Why one command instead of many?
+
+Slack reserves common command names like `/start`, `/stop`, and `/help` for built-in workspace use. Apps can't claim them. So Rentr uses a single namespaced `/rentr` command with subcommands.
 
 ## Common issues
 
@@ -51,8 +62,8 @@ Slash commands only work where the app is installed — your personal DM with Re
   <Accordion title="dispatch_failed when I run a slash command">
     Slack's UI saying our endpoint took too long to respond (>3 seconds). Usually a serverless cold-start. Retry after 10 seconds.
   </Accordion>
-  <Accordion title="Slash commands aren't in the menu">
-    The workspace admin needs to reinstall the app — `commands` scope wasn't granted on initial install.
+  <Accordion title="`/rentr` isn't in the menu">
+    The workspace admin needs to reinstall the app — the `commands` scope wasn't granted on initial install.
   </Accordion>
   <Accordion title="Bot doesn't see my DMs">
     `im:history` scope was skipped on install. Workspace admin reinstalls to grant it.
