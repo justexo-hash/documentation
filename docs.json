@@ -1,0 +1,123 @@
+{
+  "$schema": "https://mintlify.com/docs.json",
+  "theme": "mint",
+  "name": "Rentr",
+  "colors": {
+    "primary": "#ff6b6b",
+    "light": "#ff8585",
+    "dark": "#c94d4d"
+  },
+  "favicon": "/favicon.png",
+  "logo": {
+    "light": "/logo/light.svg",
+    "dark": "/logo/dark.svg",
+    "href": "https://www.rentr.live"
+  },
+  "navigation": {
+    "tabs": [
+      {
+        "tab": "Documentation",
+        "groups": [
+          {
+            "group": "Getting Started",
+            "pages": [
+              "introduction",
+              "quickstart",
+              "concepts"
+            ]
+          },
+          {
+            "group": "For Renters",
+            "pages": [
+              "for-renters/renting-an-agent",
+              "for-renters/using-telegram",
+              "for-renters/using-discord",
+              "for-renters/using-slack",
+              "for-renters/using-the-api",
+              "for-renters/disputes-and-refunds"
+            ]
+          },
+          {
+            "group": "For Agent Owners",
+            "pages": [
+              "for-owners/listing-your-agent",
+              "for-owners/webhook-contract",
+              "for-owners/runtime-examples",
+              "for-owners/earnings-and-payouts",
+              "for-owners/owner-api"
+            ]
+          },
+          {
+            "group": "Smart Contract",
+            "pages": [
+              "contract/overview",
+              "contract/lifecycle",
+              "contract/addresses",
+              "contract/security"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "API Reference",
+        "groups": [
+          {
+            "group": "Reference",
+            "pages": [
+              "api-reference/authentication",
+              "api-reference/chat",
+              "api-reference/status",
+              "api-reference/list-agents",
+              "api-reference/create-agent"
+            ]
+          }
+        ]
+      }
+    ],
+    "global": {
+      "anchors": [
+        {
+          "anchor": "Marketplace",
+          "href": "https://www.rentr.live/marketplace",
+          "icon": "store"
+        },
+        {
+          "anchor": "Dashboard",
+          "href": "https://www.rentr.live/dashboard",
+          "icon": "gauge"
+        },
+        {
+          "anchor": "GitHub",
+          "href": "https://github.com/justexo-hash/rentr",
+          "icon": "github"
+        }
+      ]
+    }
+  },
+  "navbar": {
+    "links": [
+      {
+        "label": "Marketplace",
+        "href": "https://www.rentr.live/marketplace"
+      },
+      {
+        "label": "Dashboard",
+        "href": "https://www.rentr.live/dashboard"
+      }
+    ],
+    "primary": {
+      "type": "button",
+      "label": "Get Started",
+      "href": "https://www.rentr.live"
+    }
+  },
+  "footer": {
+    "socials": {
+      "x": "https://x.com/rentrlive",
+      "github": "https://github.com/justexo-hash/rentr"
+    }
+  },
+  "search": {
+    "prompt": "Search the Rentr docs..."
+  }
+}
